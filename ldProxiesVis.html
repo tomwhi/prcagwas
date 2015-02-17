@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<style type="text/css" title="currentStyle">
+			@import "./stylesheets/styles.css";
+			@import "./media/css/jquery.dataTables.css";
+		</style>
+		<script type="text/javascript" language="javascript" src="./lib/jquery-2.1.0.js"></script>
+		<script type="text/javascript" language="javascript" src="./lib/DataTables-1.9.4/media/js/jquery.dataTables.js"></script>
+		<script type="text/javascript" language="javascript" src="./src/snpAnnotationVis.js"></script>
+		<script type="text/javascript">
+    $( document ).ready(function() {
+		// Once DOM has loaded...
+
+		// This page summarises and links to all eQTL and functional genomics data for
+		// the given lead SNP.
+		
+		// Retrieve the string inputs from the window, reconstitute them into objects
+		// where necessary (and debugging lines to trace-check them for validity):
+		var leadSNPstring = window.leadSNPstring;
+		var r2thresh = window.r2thresh;
+		var locusImgURL = window.locusImgURL;
+		var ldProxyInfoJSON = JSON.parse(window.ldProxyInfoString);
+		var annotationsJSON = JSON.parse(window.annotationsString);
+		var eQtlJSON = JSON.parse(window.eQtlString);
+		var eQTLgene2cohort2qval = JSON.parse(window.eQTLgene2cohort2qvalString);
+
+		document.title = "Lead SNP proxies display: " + leadSNPstring;
+
+		// Print the lead SNP in a div, just the string, since I don't have a proper
+		// lead SNP object in the current implementation...
+
+		// Div for the lead SNP itself:
+		var leadSNPdiv = document.createElement('div');
+		leadSNPdiv.className = "titleDiv";
+		// FIXME: Probably improve on this later; at least change the underscores to
+		// space characters!!:
+		leadSNPdiv.innerHTML = "<h3>Lead SNP: " + leadSNPstring + "</h3>";
+		document.body.appendChild(leadSNPdiv);
+
+		var locusImageDiv = document.createElement('div');
+		locusImageDiv.className = "locusDisplay";
+		var locusImage = document.createElement('img');
+		locusImage.src = "./resources/" + locusImgURL;
+		locusImageDiv.appendChild(locusImage);
+		document.body.appendChild(locusImageDiv);
+
+		// Parse the ldInfo string; keys are name/chrom/pos of lead SNP,
+		// values are associative arrays from ld proxy to r2 score.
+		var ldProxyInfoString = window.ldProxyInfoString;
+		var ldProxyInfo = JSON.parse(ldProxyInfoString);
+
+		// Generate div showing any significant eQTL genes for this lead SNP...
+		//var eQTLdiv = document.createElement('div');
+		//eQTLdiv.className = "dataBox";
+
+		//var sigGenesStr = "";
+		//if (eQTLsigGenesAndQvalsJSON.length > 0) {
+		//	sigGenesStr = eQTLsigGenesAndQvalsJSON.reduce(function(elem1, elem2) {
+		//   		return elem1 + ", " + elem2;
+		//	});
+		//} else {
+		//	sigGenesStr = "None";
+		//}
+
+		//document.body.appendChild(eQTLdiv);
+		//eQTLdiv.innerHTML = "<h4>eQTL genes:</h4><p>" + sigGenesStr + "<p>";
+
+		// NOTE: Since the above eQTL lead SNP summary can be very simple, I'm not
+		// implementing this function anymore:
+		// generateEqtlSummaryForLead(eQTLdiv, eQTLdataURL, ldProxyInfo, leadSNP);
+		// What I had planned to put inside that function (now done by parent page):
+		// - First need to decide on structure of eQTL data JSON file. Then, inside function:
+		// - Parse that file into an object literal. Then, inside the getJSON callback function:
+		// - Get hashtable of all significant genes
+		// - Get LD proxies of the specified lead SNP (the structure of ldProxyInfo facilitates this)
+		// - For each of those LD proxies:
+		// -- Get all probesets corresponding to any of the overall significant eQTL genes
+		// -- Put them in a gene -> probeset/SNP/p-value hashtable
+
+		// Make the LD proxies display table...
+		var ldProxiesDisplayDiv = document.createElement('div');
+		document.body.appendChild(ldProxiesDisplayDiv);
+
+		var paramControlsDiv = document.createElement('div');
+		paramControlsDiv.className = "params";
+		paramControlsDiv.innerHTML = "<h3>Parameter controls for proxy SNP displays:</h3>";
+		ldProxiesDisplayDiv.appendChild(paramControlsDiv);
+
+		var r2div = document.createElement('div');
+		paramControlsDiv.appendChild(r2div);
+		r2div.className = "paramsElement";
+		r2div.innerHTML = "<h4>Minimum r<sup>2</sup>:</h4>";
+		var r2slideBar = makeSlideBar(0.3, 1, 0.1, r2thresh);
+		r2div.appendChild(r2slideBar);
+		var currValueDiv = document.createElement('div');
+		currValueDiv.innerHTML = "Currently: >= " + r2thresh;
+		r2div.appendChild(currValueDiv);
+
+		var signalThresh = 10;
+		var chipSeqDiv = document.createElement('div');
+		paramControlsDiv.appendChild(chipSeqDiv);
+		chipSeqDiv.className = "paramsElement";
+		chipSeqDiv.innerHTML = "<h4>Minimum PWM-matched ChIP-seq<br>signal (MACS fold-change):</h4>";
+		var signalSlideBar = makeSlideBar(0, 20, 2, signalThresh);
+		chipSeqDiv.appendChild(signalSlideBar);
+		var currSignalValueDiv = document.createElement('div');
+		currSignalValueDiv.innerHTML = "Currently: >= " + signalThresh;
+		chipSeqDiv.appendChild(currSignalValueDiv);
+
+		var ldProxiesTableDiv = document.createElement('div')
+		ldProxiesDisplayDiv.appendChild(ldProxiesTableDiv);
+
+		r2slideBar.onchange = function() {
+			r2thresh = r2slideBar.value;
+			makeLDproxiesTable(ldProxiesTableDiv, ldProxyInfoJSON, annotationsJSON, eQtlJSON, eQTLgene2cohort2qval, r2thresh, signalThresh, leadSNPstring);
+			currValueDiv.innerHTML = "Currently: >= " + r2thresh;
+		}
+
+		signalSlideBar.onchange = function() {
+			signalThresh = signalSlideBar.value;
+			makeLDproxiesTable(ldProxiesTableDiv, ldProxyInfoJSON, annotationsJSON, eQtlJSON, eQTLgene2cohort2qval, r2thresh, signalThresh, leadSNPstring);
+			currSignalValueDiv.innerHTML = "Currently: >= " + signalThresh;
+		}
+		
+		// Generate the table using the starting r2 threshold value:
+		makeLDproxiesTable(ldProxiesTableDiv, ldProxyInfoJSON, annotationsJSON, eQtlJSON, eQTLgene2cohort2qval, r2thresh, signalThresh, leadSNPstring);
+    });
+		</script>
+	</head>
+	<body>
+	</body>
+</html>

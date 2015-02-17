@@ -1,0 +1,5 @@
+Options  -Indexes
+AuthType Basic
+AuthUserFile /proj/b2013051/webexport/PrCa_GWAS/.htpasswd
+AuthName "Private project area"
+Require valid-user

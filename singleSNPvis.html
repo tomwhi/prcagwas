@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<style type="text/css" title="currentStyle">
+			@import "./stylesheets/styles.css";
+			@import "./stylesheets/jquery-ui.css">
+		</style>
+		<script type="text/javascript" language="javascript" src="./lib/jquery-2.1.0.js"></script>
+		<script type="text/javascript" language="javascript" src="./lib/DataTables-1.9.4/media/js/jquery.dataTables.js"></script>
+		<script type="text/javascript" language="javascript" src="./src/snpAnnotationVis.js"></script>
+		<script type="text/javascript">
+    $( document ).ready(function() {
+		// If the name of a SNP is specified in the URL query string, then extract
+		// that annotation from the SNP annotations JSON file and display it. Otherwise,
+		// assume that the SNP has already been parsed and is specified in the
+		// window.snpAnnotString variable...
+
+		// XXX DEBUG THIS!:
+		if (navigator.userAgent.indexOf("MSIE") > 0) {
+			document.body.innerHTML = "<h4>This tool has not been made compatible with internet explorer, but has been tested with Safari, Chrome, or Firefox.</h4>";
+		}
+		
+		// Check for URL query string:
+		var urlQueryString = window.location.search;
+		if (urlQueryString != "") {
+			var querySNPname = urlQueryString.split("?")[1];
+
+			waitingMessage = document.createElement('div');
+			waitingMessage.className = "titleDiv";
+			waitingMessage.innerHTML = "<h2>Loading SNP annotation resource, please wait...</h2>";
+			document.body.appendChild(waitingMessage);
+
+			// Parse the annotations JSON file, select the specified SNP's annotation,
+			// and then make the page...
+			var annotationsURL = "./resources/combinedAnnotations.json";
+			$.when($.getJSON(annotationsURL)).then(function(annotsJSON) {
+				// Extract the specified SNP: Currently, will do this by (inefficiently)
+				// iterating through all of the SNPs, since lookup would require knowing
+				// the chromosome and position as well:
+				var snpFound = false;
+				for (snpString in annotsJSON) {
+					currSNPname = snpString.split("_")[2];
+					if (currSNPname == querySNPname) {
+						snpFound = true;
+						// Clear the "loading" message:
+						document.body.innerHTML = "";
+
+						var snpAnnot = new SNP_Annotation(annotsJSON[snpString]);
+
+						makeSNPannotPage(snpAnnot);
+					}
+				}
+
+				if (!snpFound) {
+					document.body.innerHTML = "<div class=\"titleDiv\"><h2>Could not display SNP " + 
+						querySNPname + "; not found in annotation resource.</h2></div>";
+				}
+			}).fail(function() {
+				console.log("Error: Failed to load annotations JSON resource.");
+			});
+		} else {
+			// Retrieve the location of the SNP annotation JSON file, by looking at the
+			// variable (who's value should have been set by the opening window):
+			var snpAnnot = new SNP_Annotation(JSON.parse(window.snpAnnotString));
+
+			makeSNPannotPage(snpAnnot);
+		}
+    });
+		</script>
+	</head>
+	<body>
+	</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<style type="text/css" title="currentStyle">
+			@import "./stylesheets/styles.css";
+			@import "./media/css/jquery.dataTables.css";
+		</style>
+		<script type="text/javascript" language="javascript" src="./lib/jquery-2.1.0.js"></script>
+		<script type="text/javascript" language="javascript" src="./media/js/jquery.dataTables.js"></script>
+		<script type="text/javascript" language="javascript" src="./src/snpAnnotationVis.js"></script>
+		<script type="text/javascript">
+    $( document ).ready(function() {
+		// NOTE: Button opening window seems slow.
+		// -> It seems to be the window.open function, but this problem seems to be
+		// limited to safari; it's very fast on the other browsers. And it's not
+		// too bad on safari, so I'll keep using it as-is for the time being.
+		
+		// Use the ".when()" function to parse the four input JSON files...
+		// 1) LD Info
+		// 2) Lead SNP locus image list
+		// 3) eQTL data: Gene-level stats
+		// 4) eQTL data: SNP and probe-level stats
+
+		// This script assumes these file locations, hard-coded:
+		var ldInfoURL = "./resources/LDinfo.json";
+		var locusImageListURL = "./resources/lead2locusImage.json";
+
+		var eQTLdataURL = "./resources/combinedEqtlData.json";
+		var annotationsURL = "./resources/combinedAnnotations.json";
+		var r2thresh = 0.3;
+
+		// XXX DEBUG THIS!:
+		if (navigator.userAgent.indexOf("MSIE") > 0) {
+			document.body.innerHTML = "<h4>This tool has not been made compatible with internet explorer, but has been tested with Safari, Chrome, or Firefox.</h4>";
+		}
+
+		// Retrieve and parse the above URLs...
+		
+		// Generate an array of ajax requests to be processed in the "when" function:
+		requests = [$.getJSON(ldInfoURL), $.getJSON(locusImageListURL), $.getJSON(annotationsURL), $.getJSON(eQTLdataURL)];
+
+		// Parse and process using AJAX:
+		$.when.apply($, requests).done(function () {
+			document.body.innerHTML = "";
+			
+			var headerDiv = document.createElement('div');
+			headerDiv.className = "topHeading";
+			document.body.appendChild(headerDiv);
+			btnDiv = document.createElement('div');
+			btnDiv.className = "rightAlgn";
+			headerDiv.appendChild(btnDiv);
+			helpButton = document.createElement('BUTTON');
+			helpButton.className = "helpButton";
+			helpButton.innerHTML = "Click for help";
+			btnDiv.appendChild(helpButton);
+			headerDiv.appendChild(btnDiv);
+			var titleDiv = document.createElement('div');
+			titleDiv.className="titleDiv";
+			titleDiv.innerHTML="Prostate cancer GWAS lead SNPs";
+			headerDiv.appendChild(titleDiv);
+			
+			// Help button opens link with screen shots of the system:
+			helpButton.onclick = function() {
+				window.open('help.html');
+			}
+			
+			// Slidebar for adjusting the r2 threshold:
+			var paramControlsDiv = document.createElement('div');
+			paramControlsDiv.className = "params";
+			document.body.appendChild(paramControlsDiv);
+			var currValueDiv = document.createElement('div');
+			currValueDiv.innerHTML = "<h4>r<sup>2</sup> threshold: " + r2thresh + "</h4>";
+			paramControlsDiv.appendChild(currValueDiv);
+
+			var sliderDiv = document.createElement('div');
+			paramControlsDiv.appendChild(sliderDiv);
+			var r2slideBar = makeSlideBar(0.3, 1, 0.1, r2thresh);
+			sliderDiv.appendChild(r2slideBar);
+			var btnDiv = document.createElement('div');
+			paramControlsDiv.appendChild(btnDiv);
+			var updateBtn = document.createElement("BUTTON");
+			updateBtn.className = "latentButton";
+			updateBtn.innerHTML = "UPDATE";
+			btnDiv.appendChild(updateBtn);
+
+			var leadSNPtableDiv = document.createElement('div');
+			document.body.appendChild(leadSNPtableDiv);
+			leadSNPtableDiv.className = "dataBox";
+
+			ldInfoJSON = arguments[0][0];
+			locusImageListJSON = arguments[1][0];
+			annotationsJSON = arguments[2][0];
+			eQtlJSON = arguments[3][0];
+
+			// Generate the table of lead SNP info, at the default r2 threshold:
+			makeLeadSNPtable(leadSNPtableDiv, ldInfoJSON, locusImageListJSON, annotationsJSON, eQtlJSON, r2thresh);
+
+			r2slideBar.onchange = function() {
+				var newR2 = r2slideBar.value;
+				currValueDiv.innerHTML = "<h4>r<sup>2</sup> threshold: " + newR2 + "</h4>";
+				leadSNPtableDiv.className = "clouded";
+				updateBtn.className = "updateButton";
+			}
+			
+			updateBtn.onclick = function() {
+				updateBtn.className = "latentButton";
+				leadSNPtableDiv.className = "unclouded";
+				// NOTE: I need to retrieve and parse the eQTL file list info before I
+				// make the lead SNP table, every time:
+				var newR2 = r2slideBar.value;
+				makeLeadSNPtable(leadSNPtableDiv, ldInfoJSON, locusImageListJSON, annotationsJSON, eQtlJSON, newR2);
+			}
+		}).fail(function() {
+			console.log("Failed to parse JSON files.");
+		});
+    });
+		</script>
+	</head>
+	<body>
+	<div class="titleDiv"><h2>Loading annotation + eQTL resource, please wait...</h2></div>
+	</body>
+</html>
