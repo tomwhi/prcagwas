@@ -30,9 +30,9 @@
 		var annotationsURL = "./resources/combinedAnnotations.json";
 		var r2thresh = 0.3;
 
-		// XXX DEBUG THIS!:
 		if (navigator.userAgent.indexOf("MSIE") > 0) {
 			document.body.innerHTML = "<h4>This tool has not been made compatible with internet explorer, but has been tested with Safari, Chrome, or Firefox.</h4>";
+			return;
 		}
 
 		// Retrieve and parse the above URLs...
