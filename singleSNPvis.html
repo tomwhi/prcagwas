@@ -16,9 +16,9 @@
 		// assume that the SNP has already been parsed and is specified in the
 		// window.snpAnnotString variable...
 
-		// XXX DEBUG THIS!:
 		if (navigator.userAgent.indexOf("MSIE") > 0) {
-			document.body.innerHTML = "<h4>This tool has not been made compatible with internet explorer, but has been tested with Safari, Chrome, or Firefox.</h4>";
+			document.body.innerHTML = "<h4>This tool has not been made compatible with internet explorer, but has been tested with Safari, Chrome, and Firefox.</h4>";
+			return;
 		}
 		
 		// Check for URL query string:
